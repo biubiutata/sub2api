@@ -188,6 +188,26 @@ func (_u *UserUpdate) SetNillableNotes(v *string) *UserUpdate {
 	return _u
 }
 
+// SetLastCheckinAt sets the "last_checkin_at" field.
+func (_u *UserUpdate) SetLastCheckinAt(v time.Time) *UserUpdate {
+	_u.mutation.SetLastCheckinAt(v)
+	return _u
+}
+
+// SetNillableLastCheckinAt sets the "last_checkin_at" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableLastCheckinAt(v *time.Time) *UserUpdate {
+	if v != nil {
+		_u.SetLastCheckinAt(*v)
+	}
+	return _u
+}
+
+// ClearLastCheckinAt clears the value of the "last_checkin_at" field.
+func (_u *UserUpdate) ClearLastCheckinAt() *UserUpdate {
+	_u.mutation.ClearLastCheckinAt()
+	return _u
+}
+
 // SetTotpSecretEncrypted sets the "totp_secret_encrypted" field.
 func (_u *UserUpdate) SetTotpSecretEncrypted(v string) *UserUpdate {
 	_u.mutation.SetTotpSecretEncrypted(v)
@@ -735,6 +755,12 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(user.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.LastCheckinAt(); ok {
+		_spec.SetField(user.FieldLastCheckinAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastCheckinAtCleared() {
+		_spec.ClearField(user.FieldLastCheckinAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.TotpSecretEncrypted(); ok {
 		_spec.SetField(user.FieldTotpSecretEncrypted, field.TypeString, value)
@@ -1352,6 +1378,26 @@ func (_u *UserUpdateOne) SetNillableNotes(v *string) *UserUpdateOne {
 	return _u
 }
 
+// SetLastCheckinAt sets the "last_checkin_at" field.
+func (_u *UserUpdateOne) SetLastCheckinAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetLastCheckinAt(v)
+	return _u
+}
+
+// SetNillableLastCheckinAt sets the "last_checkin_at" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableLastCheckinAt(v *time.Time) *UserUpdateOne {
+	if v != nil {
+		_u.SetLastCheckinAt(*v)
+	}
+	return _u
+}
+
+// ClearLastCheckinAt clears the value of the "last_checkin_at" field.
+func (_u *UserUpdateOne) ClearLastCheckinAt() *UserUpdateOne {
+	_u.mutation.ClearLastCheckinAt()
+	return _u
+}
+
 // SetTotpSecretEncrypted sets the "totp_secret_encrypted" field.
 func (_u *UserUpdateOne) SetTotpSecretEncrypted(v string) *UserUpdateOne {
 	_u.mutation.SetTotpSecretEncrypted(v)
@@ -1929,6 +1975,12 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(user.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.LastCheckinAt(); ok {
+		_spec.SetField(user.FieldLastCheckinAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastCheckinAtCleared() {
+		_spec.ClearField(user.FieldLastCheckinAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.TotpSecretEncrypted(); ok {
 		_spec.SetField(user.FieldTotpSecretEncrypted, field.TypeString, value)

@@ -764,6 +764,7 @@ export default {
     recentActivity: 'Recent Activity',
     historyWillAppear: 'Your redemption history will appear here',
     balanceAddedRedeem: 'Balance Added (Redeem)',
+    balanceAddedDailyCheckIn: 'Balance Added (Daily Check-in)',
     balanceAddedAdmin: 'Balance Added (Admin)',
     balanceDeductedAdmin: 'Balance Deducted (Admin)',
     concurrencyAddedRedeem: 'Concurrency Added (Redeem)',
@@ -808,6 +809,19 @@ export default {
     passwordTooShort: 'Password must be at least 8 characters long',
     passwordChangeSuccess: 'Password changed successfully',
     passwordChangeFailed: 'Failed to change password',
+    dailyCheckIn: {
+      title: 'Daily Check-in',
+      description: 'Check in to receive a random balance reward',
+      available: 'Available',
+      checkedIn: 'Checked In',
+      action: 'Check In Now',
+      success: 'Check-in successful',
+      successWithAmount: 'Check-in successful, received {amount}',
+      failed: 'Failed to check in. Please try again later.',
+      rewardHint: 'Today\'s check-in grants a random balance reward and applies immediately.',
+      checkedInToday: 'You already checked in today.',
+      checkedInAt: 'Checked in at: {time}'
+    },
     // TOTP 2FA
     totp: {
       title: 'Two-Factor Authentication (2FA)',
@@ -1252,6 +1266,7 @@ export default {
       noBalanceHistory: 'No records found for this user',
       allTypes: 'All Types',
       typeBalance: 'Balance (Redeem)',
+      typeDailyCheckIn: 'Balance (Daily Check-in)',
       typeAdminBalance: 'Balance (Admin)',
       typeConcurrency: 'Concurrency (Redeem)',
       typeAdminConcurrency: 'Concurrency (Admin)',
@@ -3742,6 +3757,13 @@ export default {
           'Duplicate subscription group: {groupId}. Each group can only appear once.',
         subscriptionGroup: 'Subscription Group',
         subscriptionValidityDays: 'Validity (days)'
+      },
+      dailyCheckIn: {
+        enabled: 'Enable Daily Check-in',
+        enabledHint: 'When enabled, users can claim balance once per day from their profile page.',
+        minReward: 'Min Reward',
+        maxReward: 'Max Reward',
+        rewardHint: 'The reward is randomly generated between min and max, keeping two decimal places.'
       },
       claudeCode: {
         title: 'Claude Code Settings',

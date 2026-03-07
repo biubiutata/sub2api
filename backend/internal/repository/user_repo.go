@@ -52,7 +52,7 @@ func (r *userRepository) Create(ctx context.Context, userIn *service.User) error
 		txClient = r.client
 	}
 
-	created, err := txClient.User.Create().
+	create := txClient.User.Create().
 		SetEmail(userIn.Email).
 		SetUsername(userIn.Username).
 		SetNotes(userIn.Notes).
@@ -62,7 +62,11 @@ func (r *userRepository) Create(ctx context.Context, userIn *service.User) error
 		SetConcurrency(userIn.Concurrency).
 		SetStatus(userIn.Status).
 		SetSoraStorageQuotaBytes(userIn.SoraStorageQuotaBytes).
-		Save(ctx)
+		SetSoraStorageUsedBytes(userIn.SoraStorageUsedBytes)
+	if userIn.LastCheckInAt != nil {
+		create = create.SetLastCheckinAt(*userIn.LastCheckInAt)
+	}
+	created, err := create.Save(ctx)
 	if err != nil {
 		return translatePersistenceError(err, nil, service.ErrEmailExists)
 	}
@@ -135,7 +139,7 @@ func (r *userRepository) Update(ctx context.Context, userIn *service.User) error
 		txClient = r.client
 	}
 
-	updated, err := txClient.User.UpdateOneID(userIn.ID).
+	update := txClient.User.UpdateOneID(userIn.ID).
 		SetEmail(userIn.Email).
 		SetUsername(userIn.Username).
 		SetNotes(userIn.Notes).
@@ -145,8 +149,13 @@ func (r *userRepository) Update(ctx context.Context, userIn *service.User) error
 		SetConcurrency(userIn.Concurrency).
 		SetStatus(userIn.Status).
 		SetSoraStorageQuotaBytes(userIn.SoraStorageQuotaBytes).
-		SetSoraStorageUsedBytes(userIn.SoraStorageUsedBytes).
-		Save(ctx)
+		SetSoraStorageUsedBytes(userIn.SoraStorageUsedBytes)
+	if userIn.LastCheckInAt != nil {
+		update = update.SetLastCheckinAt(*userIn.LastCheckInAt)
+	} else {
+		update = update.ClearLastCheckinAt()
+	}
+	updated, err := update.Save(ctx)
 	if err != nil {
 		return translatePersistenceError(err, service.ErrUserNotFound, service.ErrEmailExists)
 	}
@@ -337,6 +346,36 @@ func (r *userRepository) UpdateBalance(ctx context.Context, id int64, amount flo
 		return service.ErrUserNotFound
 	}
 	return nil
+}
+
+func (r *userRepository) TryDailyCheckIn(ctx context.Context, id int64, amount float64, dayStart, checkedInAt time.Time) (bool, error) {
+	client := clientFromContext(ctx, r.client)
+	n, err := client.User.Update().
+		Where(
+			dbuser.IDEQ(id),
+			dbuser.StatusEQ(service.StatusActive),
+			dbuser.Or(
+				dbuser.LastCheckinAtIsNil(),
+				dbuser.LastCheckinAtLT(dayStart),
+			),
+		).
+		AddBalance(amount).
+		SetLastCheckinAt(checkedInAt).
+		Save(ctx)
+	if err != nil {
+		return false, translatePersistenceError(err, service.ErrUserNotFound, nil)
+	}
+	if n > 0 {
+		return true, nil
+	}
+	exists, existsErr := client.User.Query().Where(dbuser.IDEQ(id)).Exist(ctx)
+	if existsErr != nil {
+		return false, existsErr
+	}
+	if !exists {
+		return false, service.ErrUserNotFound
+	}
+	return false, nil
 }
 
 // DeductBalance 扣除用户余额
@@ -542,6 +581,7 @@ func applyUserEntityToService(dst *service.User, src *dbent.User) {
 		return
 	}
 	dst.ID = src.ID
+	dst.LastCheckInAt = src.LastCheckinAt
 	dst.CreatedAt = src.CreatedAt
 	dst.UpdatedAt = src.UpdatedAt
 }

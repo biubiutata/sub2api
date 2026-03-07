@@ -28,6 +28,9 @@ export interface SystemSettings {
   default_balance: number
   default_concurrency: number
   default_subscriptions: DefaultSubscriptionSetting[]
+  daily_checkin_enabled: boolean
+  daily_checkin_min_reward: number
+  daily_checkin_max_reward: number
   // OEM settings
   site_name: string
   site_logo: string
@@ -95,6 +98,9 @@ export interface UpdateSettingsRequest {
   default_balance?: number
   default_concurrency?: number
   default_subscriptions?: DefaultSubscriptionSetting[]
+  daily_checkin_enabled?: boolean
+  daily_checkin_min_reward?: number
+  daily_checkin_max_reward?: number
   site_name?: string
   site_logo?: string
   site_subtitle?: string

@@ -2,18 +2,24 @@ package service
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"fmt"
 	"log"
+	"math"
+	"math/big"
 	"time"
 
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 )
 
 var (
-	ErrUserNotFound      = infraerrors.NotFound("USER_NOT_FOUND", "user not found")
-	ErrPasswordIncorrect = infraerrors.BadRequest("PASSWORD_INCORRECT", "current password is incorrect")
-	ErrInsufficientPerms = infraerrors.Forbidden("INSUFFICIENT_PERMISSIONS", "insufficient permissions")
+	ErrUserNotFound                 = infraerrors.NotFound("USER_NOT_FOUND", "user not found")
+	ErrPasswordIncorrect            = infraerrors.BadRequest("PASSWORD_INCORRECT", "current password is incorrect")
+	ErrInsufficientPerms            = infraerrors.Forbidden("INSUFFICIENT_PERMISSIONS", "insufficient permissions")
+	ErrDailyCheckInDisabled         = infraerrors.Forbidden("DAILY_CHECK_IN_DISABLED", "daily check-in is disabled")
+	ErrDailyCheckInAlreadyCompleted = infraerrors.Conflict("DAILY_CHECK_IN_ALREADY_COMPLETED", "daily check-in already completed today")
 )
 
 // UserListFilters contains all filter options for listing users
@@ -40,6 +46,7 @@ type UserRepository interface {
 	ListWithFilters(ctx context.Context, params pagination.PaginationParams, filters UserListFilters) ([]User, *pagination.PaginationResult, error)
 
 	UpdateBalance(ctx context.Context, id int64, amount float64) error
+	TryDailyCheckIn(ctx context.Context, id int64, amount float64, dayStart, checkedInAt time.Time) (bool, error)
 	DeductBalance(ctx context.Context, id int64, amount float64) error
 	UpdateConcurrency(ctx context.Context, id int64, amount int) error
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
@@ -66,19 +73,35 @@ type ChangePasswordRequest struct {
 	NewPassword     string `json:"new_password"`
 }
 
+type DailyCheckInStatus struct {
+	Enabled        bool
+	CheckedInToday bool
+	LastCheckInAt  *time.Time
+}
+
+type DailyCheckInResult struct {
+	RewardAmount float64
+	NewBalance   float64
+	CheckedInAt  time.Time
+}
+
 // UserService 用户服务
 type UserService struct {
 	userRepo             UserRepository
 	authCacheInvalidator APIKeyAuthCacheInvalidator
 	billingCache         BillingCache
+	settingService       *SettingService
+	redeemRepo           RedeemCodeRepository
 }
 
 // NewUserService 创建用户服务实例
-func NewUserService(userRepo UserRepository, authCacheInvalidator APIKeyAuthCacheInvalidator, billingCache BillingCache) *UserService {
+func NewUserService(userRepo UserRepository, authCacheInvalidator APIKeyAuthCacheInvalidator, billingCache BillingCache, settingService *SettingService, redeemRepo RedeemCodeRepository) *UserService {
 	return &UserService{
 		userRepo:             userRepo,
 		authCacheInvalidator: authCacheInvalidator,
 		billingCache:         billingCache,
+		settingService:       settingService,
+		redeemRepo:           redeemRepo,
 	}
 }
 
@@ -176,6 +199,73 @@ func (s *UserService) GetByID(ctx context.Context, id int64) (*User, error) {
 	return user, nil
 }
 
+func (s *UserService) GetDailyCheckInStatus(ctx context.Context, userID int64) (*DailyCheckInStatus, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+
+	enabled := s.isDailyCheckInEnabled(ctx) && s.hasValidDailyCheckInRewardRange(ctx)
+
+	return &DailyCheckInStatus{
+		Enabled:        enabled,
+		CheckedInToday: hasCheckedInToday(user.LastCheckInAt),
+		LastCheckInAt:  user.LastCheckInAt,
+	}, nil
+}
+
+func (s *UserService) DailyCheckIn(ctx context.Context, userID int64) (*DailyCheckInResult, error) {
+	if !s.isDailyCheckInEnabled(ctx) {
+		return nil, ErrDailyCheckInDisabled
+	}
+	rewardAmount, err := s.generateDailyCheckInReward(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	checkedInAt := timezone.Now()
+	ok, err := s.userRepo.TryDailyCheckIn(ctx, userID, rewardAmount, timezone.Today(), checkedInAt)
+	if err != nil {
+		return nil, fmt.Errorf("daily check-in: %w", err)
+	}
+	if !ok {
+		return nil, ErrDailyCheckInAlreadyCompleted
+	}
+
+	s.invalidateBalanceCaches(ctx, userID)
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user after daily check-in: %w", err)
+	}
+
+	if s.redeemRepo != nil {
+		code, codeErr := GenerateRedeemCode()
+		if codeErr != nil {
+			log.Printf("generate daily check-in record code failed: user_id=%d err=%v", userID, codeErr)
+		} else {
+			usedAt := checkedInAt
+			record := &RedeemCode{
+				Code:   code,
+				Type:   RedeemTypeDailyCheckIn,
+				Value:  rewardAmount,
+				Status: StatusUsed,
+				UsedBy: &user.ID,
+				UsedAt: &usedAt,
+			}
+			if createErr := s.redeemRepo.Create(ctx, record); createErr != nil {
+				log.Printf("create daily check-in record failed: user_id=%d err=%v", userID, createErr)
+			}
+		}
+	}
+
+	return &DailyCheckInResult{
+		RewardAmount: rewardAmount,
+		NewBalance:   user.Balance,
+		CheckedInAt:  checkedInAt,
+	}, nil
+}
+
 // List 获取用户列表（管理员功能）
 func (s *UserService) List(ctx context.Context, params pagination.PaginationParams) ([]User, *pagination.PaginationResult, error) {
 	users, pagination, err := s.userRepo.List(ctx, params)
@@ -190,6 +280,11 @@ func (s *UserService) UpdateBalance(ctx context.Context, userID int64, amount fl
 	if err := s.userRepo.UpdateBalance(ctx, userID, amount); err != nil {
 		return fmt.Errorf("update balance: %w", err)
 	}
+	s.invalidateBalanceCaches(ctx, userID)
+	return nil
+}
+
+func (s *UserService) invalidateBalanceCaches(ctx context.Context, userID int64) {
 	if s.authCacheInvalidator != nil {
 		s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, userID)
 	}
@@ -202,7 +297,49 @@ func (s *UserService) UpdateBalance(ctx context.Context, userID int64, amount fl
 			}
 		}()
 	}
-	return nil
+}
+
+func (s *UserService) isDailyCheckInEnabled(ctx context.Context) bool {
+	return s.settingService != nil && s.settingService.IsDailyCheckInEnabled(ctx)
+}
+
+func (s *UserService) getDailyCheckInRewardRange(ctx context.Context) (float64, float64) {
+	if s.settingService == nil {
+		return 0, 0
+	}
+	return s.settingService.GetDailyCheckInRewardRange(ctx)
+}
+
+func (s *UserService) hasValidDailyCheckInRewardRange(ctx context.Context) bool {
+	minReward, maxReward := s.getDailyCheckInRewardRange(ctx)
+	minCents := int64(math.Round(minReward * 100))
+	maxCents := int64(math.Round(maxReward * 100))
+	return minCents > 0 && maxCents >= minCents
+}
+
+func (s *UserService) generateDailyCheckInReward(ctx context.Context) (float64, error) {
+	minReward, maxReward := s.getDailyCheckInRewardRange(ctx)
+	minCents := int64(math.Round(minReward * 100))
+	maxCents := int64(math.Round(maxReward * 100))
+	if minCents <= 0 || maxCents < minCents {
+		return 0, ErrDailyCheckInDisabled
+	}
+	if minCents == maxCents {
+		return float64(minCents) / 100, nil
+	}
+	span := maxCents - minCents + 1
+	randomOffset, err := cryptorand.Int(cryptorand.Reader, big.NewInt(span))
+	if err != nil {
+		return 0, fmt.Errorf("generate daily check-in reward: %w", err)
+	}
+	return float64(minCents+randomOffset.Int64()) / 100, nil
+}
+
+func hasCheckedInToday(lastCheckInAt *time.Time) bool {
+	if lastCheckInAt == nil {
+		return false
+	}
+	return !lastCheckInAt.Before(timezone.Today())
 }
 
 // UpdateConcurrency 更新用户并发数（管理员功能）

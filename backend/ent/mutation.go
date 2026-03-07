@@ -21262,6 +21262,7 @@ type UserMutation struct {
 	status                        *string
 	username                      *string
 	notes                         *string
+	last_checkin_at               *time.Time
 	totp_secret_encrypted         *string
 	totp_enabled                  *bool
 	totp_enabled_at               *time.Time
@@ -21847,6 +21848,55 @@ func (m *UserMutation) OldNotes(ctx context.Context) (v string, err error) {
 // ResetNotes resets all changes to the "notes" field.
 func (m *UserMutation) ResetNotes() {
 	m.notes = nil
+}
+
+// SetLastCheckinAt sets the "last_checkin_at" field.
+func (m *UserMutation) SetLastCheckinAt(t time.Time) {
+	m.last_checkin_at = &t
+}
+
+// LastCheckinAt returns the value of the "last_checkin_at" field in the mutation.
+func (m *UserMutation) LastCheckinAt() (r time.Time, exists bool) {
+	v := m.last_checkin_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastCheckinAt returns the old "last_checkin_at" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldLastCheckinAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastCheckinAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastCheckinAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastCheckinAt: %w", err)
+	}
+	return oldValue.LastCheckinAt, nil
+}
+
+// ClearLastCheckinAt clears the value of the "last_checkin_at" field.
+func (m *UserMutation) ClearLastCheckinAt() {
+	m.last_checkin_at = nil
+	m.clearedFields[user.FieldLastCheckinAt] = struct{}{}
+}
+
+// LastCheckinAtCleared returns if the "last_checkin_at" field was cleared in this mutation.
+func (m *UserMutation) LastCheckinAtCleared() bool {
+	_, ok := m.clearedFields[user.FieldLastCheckinAt]
+	return ok
+}
+
+// ResetLastCheckinAt resets all changes to the "last_checkin_at" field.
+func (m *UserMutation) ResetLastCheckinAt() {
+	m.last_checkin_at = nil
+	delete(m.clearedFields, user.FieldLastCheckinAt)
 }
 
 // SetTotpSecretEncrypted sets the "totp_secret_encrypted" field.
@@ -22615,7 +22665,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
 	}
@@ -22648,6 +22698,9 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.notes != nil {
 		fields = append(fields, user.FieldNotes)
+	}
+	if m.last_checkin_at != nil {
+		fields = append(fields, user.FieldLastCheckinAt)
 	}
 	if m.totp_secret_encrypted != nil {
 		fields = append(fields, user.FieldTotpSecretEncrypted)
@@ -22694,6 +22747,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Username()
 	case user.FieldNotes:
 		return m.Notes()
+	case user.FieldLastCheckinAt:
+		return m.LastCheckinAt()
 	case user.FieldTotpSecretEncrypted:
 		return m.TotpSecretEncrypted()
 	case user.FieldTotpEnabled:
@@ -22735,6 +22790,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldUsername(ctx)
 	case user.FieldNotes:
 		return m.OldNotes(ctx)
+	case user.FieldLastCheckinAt:
+		return m.OldLastCheckinAt(ctx)
 	case user.FieldTotpSecretEncrypted:
 		return m.OldTotpSecretEncrypted(ctx)
 	case user.FieldTotpEnabled:
@@ -22830,6 +22887,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNotes(v)
+		return nil
+	case user.FieldLastCheckinAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastCheckinAt(v)
 		return nil
 	case user.FieldTotpSecretEncrypted:
 		v, ok := value.(string)
@@ -22950,6 +23014,9 @@ func (m *UserMutation) ClearedFields() []string {
 	if m.FieldCleared(user.FieldDeletedAt) {
 		fields = append(fields, user.FieldDeletedAt)
 	}
+	if m.FieldCleared(user.FieldLastCheckinAt) {
+		fields = append(fields, user.FieldLastCheckinAt)
+	}
 	if m.FieldCleared(user.FieldTotpSecretEncrypted) {
 		fields = append(fields, user.FieldTotpSecretEncrypted)
 	}
@@ -22972,6 +23039,9 @@ func (m *UserMutation) ClearField(name string) error {
 	switch name {
 	case user.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case user.FieldLastCheckinAt:
+		m.ClearLastCheckinAt()
 		return nil
 	case user.FieldTotpSecretEncrypted:
 		m.ClearTotpSecretEncrypted()
@@ -23019,6 +23089,9 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldNotes:
 		m.ResetNotes()
+		return nil
+	case user.FieldLastCheckinAt:
+		m.ResetLastCheckinAt()
 		return nil
 	case user.FieldTotpSecretEncrypted:
 		m.ResetTotpSecretEncrypted()

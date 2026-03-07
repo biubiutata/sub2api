@@ -769,6 +769,7 @@ export default {
     recentActivity: '最近活动',
     historyWillAppear: '您的兑换历史将显示在这里',
     balanceAddedRedeem: '余额充值（兑换）',
+    balanceAddedDailyCheckIn: '余额奖励（签到）',
     balanceAddedAdmin: '余额充值（管理员）',
     balanceDeductedAdmin: '余额扣除（管理员）',
     concurrencyAddedRedeem: '并发增加（兑换）',
@@ -813,6 +814,19 @@ export default {
     passwordTooShort: '密码至少需要 8 个字符',
     passwordChangeSuccess: '密码修改成功',
     passwordChangeFailed: '密码修改失败',
+    dailyCheckIn: {
+      title: '每日签到',
+      description: '签到即可领取随机余额奖励',
+      available: '可签到',
+      checkedIn: '已签到',
+      action: '立即签到',
+      success: '签到成功',
+      successWithAmount: '签到成功，获得 {amount} 余额奖励',
+      failed: '签到失败，请稍后重试',
+      rewardHint: '今日签到可获得随机余额奖励，到账后会立即刷新。',
+      checkedInToday: '今日已签到，奖励已到账。',
+      checkedInAt: '签到时间：{time}'
+    },
     // TOTP 2FA
     totp: {
       title: '双因素认证 (2FA)',
@@ -1312,6 +1326,7 @@ export default {
       noBalanceHistory: '暂无变动记录',
       allTypes: '全部类型',
       typeBalance: '余额（兑换码）',
+      typeDailyCheckIn: '余额（每日签到）',
       typeAdminBalance: '余额（管理员调整）',
       typeConcurrency: '并发（兑换码）',
       typeAdminConcurrency: '并发（管理员调整）',
@@ -3916,6 +3931,13 @@ export default {
         defaultSubscriptionsDuplicate: '默认订阅存在重复分组：{groupId}。每个分组只能出现一次。',
         subscriptionGroup: '订阅分组',
         subscriptionValidityDays: '有效期（天）'
+      },
+      dailyCheckIn: {
+        enabled: '启用每日签到',
+        enabledHint: '开启后，用户可在个人资料页每日签到领取余额。',
+        minReward: '最小奖励金额',
+        maxReward: '最大奖励金额',
+        rewardHint: '签到奖励将在最小/最大金额之间随机，保留两位小数。'
       },
       claudeCode: {
         title: 'Claude Code 设置',

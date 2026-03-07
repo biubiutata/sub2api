@@ -112,6 +112,9 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		DefaultConcurrency:                   settings.DefaultConcurrency,
 		DefaultBalance:                       settings.DefaultBalance,
 		DefaultSubscriptions:                 defaultSubscriptions,
+		DailyCheckInEnabled:                  settings.DailyCheckInEnabled,
+		DailyCheckInMinReward:                settings.DailyCheckInMinReward,
+		DailyCheckInMaxReward:                settings.DailyCheckInMaxReward,
 		EnableModelFallback:                  settings.EnableModelFallback,
 		FallbackModelAnthropic:               settings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                  settings.FallbackModelOpenAI,
@@ -174,9 +177,12 @@ type UpdateSettingsRequest struct {
 	CustomMenuItems             *[]dto.CustomMenuItem `json:"custom_menu_items"`
 
 	// 默认配置
-	DefaultConcurrency   int                              `json:"default_concurrency"`
-	DefaultBalance       float64                          `json:"default_balance"`
-	DefaultSubscriptions []dto.DefaultSubscriptionSetting `json:"default_subscriptions"`
+	DefaultConcurrency    int                              `json:"default_concurrency"`
+	DefaultBalance        float64                          `json:"default_balance"`
+	DefaultSubscriptions  []dto.DefaultSubscriptionSetting `json:"default_subscriptions"`
+	DailyCheckInEnabled   bool                             `json:"daily_checkin_enabled"`
+	DailyCheckInMinReward float64                          `json:"daily_checkin_min_reward"`
+	DailyCheckInMaxReward float64                          `json:"daily_checkin_max_reward"`
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
@@ -222,6 +228,16 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	}
 	if req.DefaultBalance < 0 {
 		req.DefaultBalance = 0
+	}
+	if req.DailyCheckInMinReward < 0 {
+		req.DailyCheckInMinReward = 0
+	}
+	if req.DailyCheckInMaxReward < 0 {
+		req.DailyCheckInMaxReward = 0
+	}
+	if req.DailyCheckInMaxReward < req.DailyCheckInMinReward {
+		response.BadRequest(c, "Daily check-in max reward must be greater than or equal to min reward")
+		return
 	}
 	if req.SMTPPort <= 0 {
 		req.SMTPPort = 587
@@ -464,6 +480,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DefaultConcurrency:               req.DefaultConcurrency,
 		DefaultBalance:                   req.DefaultBalance,
 		DefaultSubscriptions:             defaultSubscriptions,
+		DailyCheckInEnabled:              req.DailyCheckInEnabled,
+		DailyCheckInMinReward:            req.DailyCheckInMinReward,
+		DailyCheckInMaxReward:            req.DailyCheckInMaxReward,
 		EnableModelFallback:              req.EnableModelFallback,
 		FallbackModelAnthropic:           req.FallbackModelAnthropic,
 		FallbackModelOpenAI:              req.FallbackModelOpenAI,
@@ -558,6 +577,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DefaultConcurrency:                   updatedSettings.DefaultConcurrency,
 		DefaultBalance:                       updatedSettings.DefaultBalance,
 		DefaultSubscriptions:                 updatedDefaultSubscriptions,
+		DailyCheckInEnabled:                  updatedSettings.DailyCheckInEnabled,
+		DailyCheckInMinReward:                updatedSettings.DailyCheckInMinReward,
+		DailyCheckInMaxReward:                updatedSettings.DailyCheckInMaxReward,
 		EnableModelFallback:                  updatedSettings.EnableModelFallback,
 		FallbackModelAnthropic:               updatedSettings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                  updatedSettings.FallbackModelOpenAI,
@@ -682,6 +704,15 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.DefaultBalance != after.DefaultBalance {
 		changed = append(changed, "default_balance")
+	}
+	if before.DailyCheckInEnabled != after.DailyCheckInEnabled {
+		changed = append(changed, "daily_checkin_enabled")
+	}
+	if before.DailyCheckInMinReward != after.DailyCheckInMinReward {
+		changed = append(changed, "daily_checkin_min_reward")
+	}
+	if before.DailyCheckInMaxReward != after.DailyCheckInMaxReward {
+		changed = append(changed, "daily_checkin_max_reward")
 	}
 	if !equalDefaultSubscriptions(before.DefaultSubscriptions, after.DefaultSubscriptions) {
 		changed = append(changed, "default_subscriptions")

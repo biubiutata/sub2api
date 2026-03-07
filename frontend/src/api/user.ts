@@ -6,6 +6,19 @@
 import { apiClient } from './client'
 import type { User, ChangePasswordRequest } from '@/types'
 
+export interface DailyCheckInStatus {
+  enabled: boolean
+  checked_in_today: boolean
+  last_checkin_at?: string | null
+}
+
+export interface DailyCheckInResult {
+  message: string
+  reward_amount: number
+  new_balance: number
+  checked_in_at: string
+}
+
 /**
  * Get current user profile
  * @returns User profile data
@@ -45,10 +58,22 @@ export async function changePassword(
   return data
 }
 
+export async function getDailyCheckInStatus(): Promise<DailyCheckInStatus> {
+  const { data } = await apiClient.get<DailyCheckInStatus>('/user/check-in/status')
+  return data
+}
+
+export async function dailyCheckIn(): Promise<DailyCheckInResult> {
+  const { data } = await apiClient.post<DailyCheckInResult>('/user/check-in', {})
+  return data
+}
+
 export const userAPI = {
   getProfile,
   updateProfile,
-  changePassword
+  changePassword,
+  getDailyCheckInStatus,
+  dailyCheckIn
 }
 
 export default userAPI

@@ -194,6 +194,21 @@ func TestSettingService_UpdateSettings_RegistrationEmailSuffixWhitelist_Invalid(
 	require.Equal(t, "INVALID_REGISTRATION_EMAIL_SUFFIX_WHITELIST", infraerrors.Reason(err))
 }
 
+func TestSettingService_UpdateSettings_DailyCheckIn(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		DailyCheckInEnabled:   true,
+		DailyCheckInMinReward: 1.5,
+		DailyCheckInMaxReward: 2.75,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "true", repo.updates[SettingKeyDailyCheckInEnabled])
+	require.Equal(t, "1.50000000", repo.updates[SettingKeyDailyCheckInMinReward])
+	require.Equal(t, "2.75000000", repo.updates[SettingKeyDailyCheckInMaxReward])
+}
+
 func TestParseDefaultSubscriptions_NormalizesValues(t *testing.T) {
 	got := parseDefaultSubscriptions(`[{"group_id":11,"validity_days":30},{"group_id":11,"validity_days":60},{"group_id":0,"validity_days":10},{"group_id":12,"validity_days":99999}]`)
 	require.Equal(t, []DefaultSubscriptionSetting{

@@ -882,6 +882,55 @@
                 </div>
               </div>
             </div>
+
+            <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+              <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <label class="font-medium text-gray-900 dark:text-white">
+                        {{ t('admin.settings.dailyCheckIn.enabled') }}
+                      </label>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        {{ t('admin.settings.dailyCheckIn.enabledHint') }}
+                      </p>
+                    </div>
+                    <Toggle v-model="form.daily_checkin_enabled" />
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t('admin.settings.dailyCheckIn.minReward') }}
+                    </label>
+                    <input
+                      v-model.number="form.daily_checkin_min_reward"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      class="input"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t('admin.settings.dailyCheckIn.maxReward') }}
+                    </label>
+                    <input
+                      v-model.number="form.daily_checkin_max_reward"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      class="input"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <p class="md:col-span-2 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t('admin.settings.dailyCheckIn.rewardHint') }}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         </div><!-- /Tab: Users -->
@@ -1655,6 +1704,9 @@ const form = reactive<SettingsForm>({
   default_balance: 0,
   default_concurrency: 1,
   default_subscriptions: [],
+  daily_checkin_enabled: false,
+  daily_checkin_min_reward: 0,
+  daily_checkin_max_reward: 0,
   site_name: 'Sub2API',
   site_logo: '',
   site_subtitle: 'Subscription to API Conversion Platform',
@@ -1930,6 +1982,9 @@ async function saveSettings() {
       default_balance: form.default_balance,
       default_concurrency: form.default_concurrency,
       default_subscriptions: normalizedDefaultSubscriptions,
+      daily_checkin_enabled: form.daily_checkin_enabled,
+      daily_checkin_min_reward: form.daily_checkin_min_reward,
+      daily_checkin_max_reward: form.daily_checkin_max_reward,
       site_name: form.site_name,
       site_logo: form.site_logo,
       site_subtitle: form.site_subtitle,

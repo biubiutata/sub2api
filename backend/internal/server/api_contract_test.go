@@ -63,6 +63,28 @@ func TestAPIContracts(t *testing.T) {
 			}`,
 		},
 		{
+			name: "GET /api/v1/user/check-in/status",
+			setup: func(t *testing.T, deps *contractDeps) {
+				t.Helper()
+				deps.settingRepo.SetAll(map[string]string{
+					service.SettingKeyDailyCheckInEnabled:   "true",
+					service.SettingKeyDailyCheckInMinReward: "10",
+					service.SettingKeyDailyCheckInMaxReward: "17",
+				})
+			},
+			method:     http.MethodGet,
+			path:       "/api/v1/user/check-in/status",
+			wantStatus: http.StatusOK,
+			wantJSON: `{
+				"code": 0,
+				"message": "success",
+				"data": {
+					"enabled": true,
+					"checked_in_today": false
+				}
+			}`,
+		},
+		{
 			name:   "POST /api/v1/keys",
 			method: http.MethodPost,
 			path:   "/api/v1/keys",
@@ -471,8 +493,11 @@ func TestAPIContracts(t *testing.T) {
 					service.SettingKeyContactInfo:  "support",
 					service.SettingKeyDocURL:       "https://docs.example.com",
 
-					service.SettingKeyDefaultConcurrency: "5",
-					service.SettingKeyDefaultBalance:     "1.25",
+					service.SettingKeyDefaultConcurrency:    "5",
+					service.SettingKeyDefaultBalance:        "1.25",
+					service.SettingKeyDailyCheckInEnabled:   "true",
+					service.SettingKeyDailyCheckInMinReward: "10",
+					service.SettingKeyDailyCheckInMaxReward: "17",
 
 					service.SettingKeyOpsMonitoringEnabled:         "false",
 					service.SettingKeyOpsRealtimeMonitoringEnabled: "true",
@@ -520,6 +545,9 @@ func TestAPIContracts(t *testing.T) {
 					"doc_url": "https://docs.example.com",
 					"default_concurrency": 5,
 					"default_balance": 1.25,
+					"daily_checkin_enabled": true,
+					"daily_checkin_min_reward": 10,
+					"daily_checkin_max_reward": 17,
 					"default_subscriptions": [],
 					"enable_model_fallback": false,
 					"fallback_model_anthropic": "claude-3-5-sonnet-20241022",
@@ -629,7 +657,9 @@ func newContractDeps(t *testing.T) *contractDeps {
 		RunMode: config.RunModeStandard,
 	}
 
-	userService := service.NewUserService(userRepo, nil, nil)
+	settingRepo := newStubSettingRepo()
+	settingService := service.NewSettingService(settingRepo, cfg)
+	userService := service.NewUserService(userRepo, nil, nil, settingService, redeemRepo)
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, userRepo, groupRepo, userSubRepo, nil, apiKeyCache, cfg)
 
 	usageRepo := newStubUsageLogRepo()
@@ -641,11 +671,9 @@ func newContractDeps(t *testing.T) *contractDeps {
 	redeemService := service.NewRedeemService(redeemRepo, userRepo, subscriptionService, nil, nil, nil, nil)
 	redeemHandler := handler.NewRedeemHandler(redeemService)
 
-	settingRepo := newStubSettingRepo()
-	settingService := service.NewSettingService(settingRepo, cfg)
-
 	adminService := service.NewAdminService(userRepo, groupRepo, &accountRepo, nil, proxyRepo, apiKeyRepo, redeemRepo, nil, nil, nil, nil, nil, nil, nil, nil)
 	authHandler := handler.NewAuthHandler(cfg, nil, userService, settingService, nil, redeemService, nil)
+	userHandler := handler.NewUserHandler(userService)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
 	usageHandler := handler.NewUsageHandler(usageService, apiKeyService)
 	adminSettingHandler := adminhandler.NewSettingHandler(settingService, nil, nil, nil, nil)
@@ -675,6 +703,7 @@ func newContractDeps(t *testing.T) *contractDeps {
 	v1Auth := v1.Group("")
 	v1Auth.Use(jwtAuth)
 	v1Auth.GET("/auth/me", authHandler.GetCurrentUser)
+	v1Auth.GET("/user/check-in/status", userHandler.GetDailyCheckInStatus)
 
 	v1Keys := v1.Group("")
 	v1Keys.Use(jwtAuth)
@@ -786,6 +815,19 @@ func (r *stubUserRepo) ListWithFilters(ctx context.Context, params pagination.Pa
 
 func (r *stubUserRepo) UpdateBalance(ctx context.Context, id int64, amount float64) error {
 	return errors.New("not implemented")
+}
+
+func (r *stubUserRepo) TryDailyCheckIn(ctx context.Context, id int64, amount float64, dayStart, checkedInAt time.Time) (bool, error) {
+	user, ok := r.users[id]
+	if !ok {
+		return false, service.ErrUserNotFound
+	}
+	if user.LastCheckInAt != nil && !user.LastCheckInAt.Before(dayStart) {
+		return false, nil
+	}
+	user.Balance += amount
+	user.LastCheckInAt = ptr(checkedInAt)
+	return true, nil
 }
 
 func (r *stubUserRepo) DeductBalance(ctx context.Context, id int64, amount float64) error {

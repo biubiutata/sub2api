@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -30,6 +32,19 @@ type ChangePasswordRequest struct {
 // UpdateProfileRequest represents the update profile request payload
 type UpdateProfileRequest struct {
 	Username *string `json:"username"`
+}
+
+type DailyCheckInStatusResponse struct {
+	Enabled        bool       `json:"enabled"`
+	CheckedInToday bool       `json:"checked_in_today"`
+	LastCheckInAt  *time.Time `json:"last_checkin_at,omitempty"`
+}
+
+type DailyCheckInResponse struct {
+	Message      string    `json:"message"`
+	RewardAmount float64   `json:"reward_amount"`
+	NewBalance   float64   `json:"new_balance"`
+	CheckedInAt  time.Time `json:"checked_in_at"`
 }
 
 // GetProfile handles getting user profile
@@ -103,4 +118,45 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	response.Success(c, dto.UserFromService(updatedUser))
+}
+
+func (h *UserHandler) GetDailyCheckInStatus(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	status, err := h.userService.GetDailyCheckInStatus(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, DailyCheckInStatusResponse{
+		Enabled:        status.Enabled,
+		CheckedInToday: status.CheckedInToday,
+		LastCheckInAt:  status.LastCheckInAt,
+	})
+}
+
+func (h *UserHandler) DailyCheckIn(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	result, err := h.userService.DailyCheckIn(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, DailyCheckInResponse{
+		Message:      "Daily check-in completed",
+		RewardAmount: result.RewardAmount,
+		NewBalance:   result.NewBalance,
+		CheckedInAt:  result.CheckedInAt,
+	})
 }

@@ -430,6 +430,9 @@ func (s *SettingService) UpdateSettings(ctx context.Context, settings *SystemSet
 	// 默认配置
 	updates[SettingKeyDefaultConcurrency] = strconv.Itoa(settings.DefaultConcurrency)
 	updates[SettingKeyDefaultBalance] = strconv.FormatFloat(settings.DefaultBalance, 'f', 8, 64)
+	updates[SettingKeyDailyCheckInEnabled] = strconv.FormatBool(settings.DailyCheckInEnabled)
+	updates[SettingKeyDailyCheckInMinReward] = strconv.FormatFloat(settings.DailyCheckInMinReward, 'f', 8, 64)
+	updates[SettingKeyDailyCheckInMaxReward] = strconv.FormatFloat(settings.DailyCheckInMaxReward, 'f', 8, 64)
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
 		return fmt.Errorf("marshal default subscriptions: %w", err)
@@ -584,6 +587,15 @@ func (s *SettingService) IsTotpEnabled(ctx context.Context) bool {
 	return value == "true"
 }
 
+// IsDailyCheckInEnabled 检查是否启用每日签到功能
+func (s *SettingService) IsDailyCheckInEnabled(ctx context.Context) bool {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyDailyCheckInEnabled)
+	if err != nil {
+		return false // 默认关闭
+	}
+	return value == "true"
+}
+
 // IsTotpEncryptionKeyConfigured 检查 TOTP 加密密钥是否已手动配置
 // 只有手动配置了密钥才允许在管理后台启用 TOTP 功能
 func (s *SettingService) IsTotpEncryptionKeyConfigured() bool {
@@ -623,6 +635,40 @@ func (s *SettingService) GetDefaultBalance(ctx context.Context) float64 {
 	return s.cfg.Default.UserBalance
 }
 
+// GetDailyCheckInRewardRange 获取每日签到奖励区间。
+// 兼容旧版单值配置：若新键不存在，则回退到 daily_checkin_reward 作为 min/max。
+func (s *SettingService) GetDailyCheckInRewardRange(ctx context.Context) (float64, float64) {
+	parseNonNegative := func(key string) (float64, bool) {
+		value, err := s.settingRepo.GetValue(ctx, key)
+		if err != nil {
+			return 0, false
+		}
+		parsed, parseErr := strconv.ParseFloat(value, 64)
+		if parseErr != nil || parsed < 0 {
+			return 0, false
+		}
+		return parsed, true
+	}
+
+	minReward, hasMin := parseNonNegative(SettingKeyDailyCheckInMinReward)
+	maxReward, hasMax := parseNonNegative(SettingKeyDailyCheckInMaxReward)
+	if hasMin && hasMax {
+		return minReward, maxReward
+	}
+
+	legacyReward, ok := parseNonNegative(SettingKeyDailyCheckInReward)
+	if ok {
+		return legacyReward, legacyReward
+	}
+	if hasMin {
+		return minReward, minReward
+	}
+	if hasMax {
+		return maxReward, maxReward
+	}
+	return 0, 0
+}
+
 // GetDefaultSubscriptions 获取新用户默认订阅配置列表。
 func (s *SettingService) GetDefaultSubscriptions(ctx context.Context) []DefaultSubscriptionSetting {
 	value, err := s.settingRepo.GetValue(ctx, SettingKeyDefaultSubscriptions)
@@ -658,6 +704,10 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyCustomMenuItems:                  "[]",
 		SettingKeyDefaultConcurrency:               strconv.Itoa(s.cfg.Default.UserConcurrency),
 		SettingKeyDefaultBalance:                   strconv.FormatFloat(s.cfg.Default.UserBalance, 'f', 8, 64),
+		SettingKeyDailyCheckInEnabled:              "false",
+		SettingKeyDailyCheckInReward:               "0",
+		SettingKeyDailyCheckInMinReward:            "0",
+		SettingKeyDailyCheckInMaxReward:            "0",
 		SettingKeyDefaultSubscriptions:             "[]",
 		SettingKeySMTPPort:                         "587",
 		SettingKeySMTPUseTLS:                       "false",
@@ -719,6 +769,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		PurchaseSubscriptionURL:          strings.TrimSpace(settings[SettingKeyPurchaseSubscriptionURL]),
 		SoraClientEnabled:                settings[SettingKeySoraClientEnabled] == "true",
 		CustomMenuItems:                  settings[SettingKeyCustomMenuItems],
+		DailyCheckInEnabled:              settings[SettingKeyDailyCheckInEnabled] == "true",
 	}
 
 	// 解析整数类型
@@ -739,6 +790,10 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		result.DefaultBalance = balance
 	} else {
 		result.DefaultBalance = s.cfg.Default.UserBalance
+	}
+	if minReward, maxReward := s.parseDailyCheckInRewardRange(settings); minReward >= 0 && maxReward >= 0 {
+		result.DailyCheckInMinReward = minReward
+		result.DailyCheckInMaxReward = maxReward
 	}
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
 
@@ -826,6 +881,34 @@ func isFalseSettingValue(value string) bool {
 	default:
 		return false
 	}
+}
+
+func (s *SettingService) parseDailyCheckInRewardRange(settings map[string]string) (float64, float64) {
+	parseNonNegative := func(raw string) (float64, bool) {
+		parsed, err := strconv.ParseFloat(raw, 64)
+		if err != nil || parsed < 0 {
+			return 0, false
+		}
+		return parsed, true
+	}
+
+	minReward, hasMin := parseNonNegative(settings[SettingKeyDailyCheckInMinReward])
+	maxReward, hasMax := parseNonNegative(settings[SettingKeyDailyCheckInMaxReward])
+	if hasMin && hasMax {
+		return minReward, maxReward
+	}
+
+	legacyReward, hasLegacy := parseNonNegative(settings[SettingKeyDailyCheckInReward])
+	if hasLegacy {
+		return legacyReward, legacyReward
+	}
+	if hasMin {
+		return minReward, minReward
+	}
+	if hasMax {
+		return maxReward, maxReward
+	}
+	return 0, 0
 }
 
 func parseDefaultSubscriptions(raw string) []DefaultSubscriptionSetting {

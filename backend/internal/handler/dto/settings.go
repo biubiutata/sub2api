@@ -56,9 +56,12 @@ type SystemSettings struct {
 	SoraClientEnabled           bool             `json:"sora_client_enabled"`
 	CustomMenuItems             []CustomMenuItem `json:"custom_menu_items"`
 
-	DefaultConcurrency   int                          `json:"default_concurrency"`
-	DefaultBalance       float64                      `json:"default_balance"`
-	DefaultSubscriptions []DefaultSubscriptionSetting `json:"default_subscriptions"`
+	DefaultConcurrency    int                          `json:"default_concurrency"`
+	DefaultBalance        float64                      `json:"default_balance"`
+	DefaultSubscriptions  []DefaultSubscriptionSetting `json:"default_subscriptions"`
+	DailyCheckInEnabled   bool                         `json:"daily_checkin_enabled"`
+	DailyCheckInMinReward float64                      `json:"daily_checkin_min_reward"`
+	DailyCheckInMaxReward float64                      `json:"daily_checkin_max_reward"`
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`

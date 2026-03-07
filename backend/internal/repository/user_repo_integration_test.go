@@ -252,6 +252,45 @@ func (s *UserRepoSuite) TestListWithFilters_CombinedFilters() {
 	s.Require().Equal(target.ID, users[0].ID, "ListWithFilters result mismatch")
 }
 
+func (s *UserRepoSuite) TestTryDailyCheckIn_OnlyOncePerDay() {
+	user := s.mustCreateUser(&service.User{Email: "checkin-once@test.com", Balance: 0})
+	dayStart := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
+
+	ok, err := s.repo.TryDailyCheckIn(s.ctx, user.ID, 1.5, dayStart, dayStart.Add(9*time.Hour))
+	s.Require().NoError(err)
+	s.Require().True(ok)
+
+	ok, err = s.repo.TryDailyCheckIn(s.ctx, user.ID, 1.5, dayStart, dayStart.Add(10*time.Hour))
+	s.Require().NoError(err)
+	s.Require().False(ok)
+
+	updated, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(1.5, updated.Balance)
+	s.Require().NotNil(updated.LastCheckInAt)
+	s.Require().Equal(dayStart.Add(9*time.Hour), updated.LastCheckInAt.UTC())
+}
+
+func (s *UserRepoSuite) TestTryDailyCheckIn_AllowsNextDay() {
+	user := s.mustCreateUser(&service.User{Email: "checkin-nextday@test.com", Balance: 0})
+	dayOneStart := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
+	dayTwoStart := dayOneStart.Add(24 * time.Hour)
+
+	ok, err := s.repo.TryDailyCheckIn(s.ctx, user.ID, 1.5, dayOneStart, dayOneStart.Add(8*time.Hour))
+	s.Require().NoError(err)
+	s.Require().True(ok)
+
+	ok, err = s.repo.TryDailyCheckIn(s.ctx, user.ID, 2.0, dayTwoStart, dayTwoStart.Add(8*time.Hour))
+	s.Require().NoError(err)
+	s.Require().True(ok)
+
+	updated, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(3.5, updated.Balance)
+	s.Require().NotNil(updated.LastCheckInAt)
+	s.Require().Equal(dayTwoStart.Add(8*time.Hour), updated.LastCheckInAt.UTC())
+}
+
 // --- Balance operations ---
 
 func (s *UserRepoSuite) TestUpdateBalance() {

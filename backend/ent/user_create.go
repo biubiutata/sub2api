@@ -168,6 +168,20 @@ func (_c *UserCreate) SetNillableNotes(v *string) *UserCreate {
 	return _c
 }
 
+// SetLastCheckinAt sets the "last_checkin_at" field.
+func (_c *UserCreate) SetLastCheckinAt(v time.Time) *UserCreate {
+	_c.mutation.SetLastCheckinAt(v)
+	return _c
+}
+
+// SetNillableLastCheckinAt sets the "last_checkin_at" field if the given value is not nil.
+func (_c *UserCreate) SetNillableLastCheckinAt(v *time.Time) *UserCreate {
+	if v != nil {
+		_c.SetLastCheckinAt(*v)
+	}
+	return _c
+}
+
 // SetTotpSecretEncrypted sets the "totp_secret_encrypted" field.
 func (_c *UserCreate) SetTotpSecretEncrypted(v string) *UserCreate {
 	_c.mutation.SetTotpSecretEncrypted(v)
@@ -600,6 +614,10 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldNotes, field.TypeString, value)
 		_node.Notes = value
 	}
+	if value, ok := _c.mutation.LastCheckinAt(); ok {
+		_spec.SetField(user.FieldLastCheckinAt, field.TypeTime, value)
+		_node.LastCheckinAt = &value
+	}
 	if value, ok := _c.mutation.TotpSecretEncrypted(); ok {
 		_spec.SetField(user.FieldTotpSecretEncrypted, field.TypeString, value)
 		_node.TotpSecretEncrypted = &value
@@ -958,6 +976,24 @@ func (u *UserUpsert) UpdateNotes() *UserUpsert {
 	return u
 }
 
+// SetLastCheckinAt sets the "last_checkin_at" field.
+func (u *UserUpsert) SetLastCheckinAt(v time.Time) *UserUpsert {
+	u.Set(user.FieldLastCheckinAt, v)
+	return u
+}
+
+// UpdateLastCheckinAt sets the "last_checkin_at" field to the value that was provided on create.
+func (u *UserUpsert) UpdateLastCheckinAt() *UserUpsert {
+	u.SetExcluded(user.FieldLastCheckinAt)
+	return u
+}
+
+// ClearLastCheckinAt clears the value of the "last_checkin_at" field.
+func (u *UserUpsert) ClearLastCheckinAt() *UserUpsert {
+	u.SetNull(user.FieldLastCheckinAt)
+	return u
+}
+
 // SetTotpSecretEncrypted sets the "totp_secret_encrypted" field.
 func (u *UserUpsert) SetTotpSecretEncrypted(v string) *UserUpsert {
 	u.Set(user.FieldTotpSecretEncrypted, v)
@@ -1245,6 +1281,27 @@ func (u *UserUpsertOne) SetNotes(v string) *UserUpsertOne {
 func (u *UserUpsertOne) UpdateNotes() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetLastCheckinAt sets the "last_checkin_at" field.
+func (u *UserUpsertOne) SetLastCheckinAt(v time.Time) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetLastCheckinAt(v)
+	})
+}
+
+// UpdateLastCheckinAt sets the "last_checkin_at" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateLastCheckinAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateLastCheckinAt()
+	})
+}
+
+// ClearLastCheckinAt clears the value of the "last_checkin_at" field.
+func (u *UserUpsertOne) ClearLastCheckinAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearLastCheckinAt()
 	})
 }
 
@@ -1715,6 +1772,27 @@ func (u *UserUpsertBulk) SetNotes(v string) *UserUpsertBulk {
 func (u *UserUpsertBulk) UpdateNotes() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetLastCheckinAt sets the "last_checkin_at" field.
+func (u *UserUpsertBulk) SetLastCheckinAt(v time.Time) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetLastCheckinAt(v)
+	})
+}
+
+// UpdateLastCheckinAt sets the "last_checkin_at" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateLastCheckinAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateLastCheckinAt()
+	})
+}
+
+// ClearLastCheckinAt clears the value of the "last_checkin_at" field.
+func (u *UserUpsertBulk) ClearLastCheckinAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearLastCheckinAt()
 	})
 }
 

@@ -41,6 +41,7 @@ const (
 	RedeemTypeConcurrency  = domain.RedeemTypeConcurrency
 	RedeemTypeSubscription = domain.RedeemTypeSubscription
 	RedeemTypeInvitation   = domain.RedeemTypeInvitation
+	RedeemTypeDailyCheckIn = domain.RedeemTypeDailyCheckIn
 )
 
 // PromoCode status constants
@@ -119,9 +120,13 @@ const (
 	SettingKeyCustomMenuItems             = "custom_menu_items"             // 自定义菜单项（JSON 数组）
 
 	// 默认配置
-	SettingKeyDefaultConcurrency   = "default_concurrency"   // 新用户默认并发量
-	SettingKeyDefaultBalance       = "default_balance"       // 新用户默认余额
-	SettingKeyDefaultSubscriptions = "default_subscriptions" // 新用户默认订阅列表（JSON）
+	SettingKeyDefaultConcurrency    = "default_concurrency"      // 新用户默认并发量
+	SettingKeyDefaultBalance        = "default_balance"          // 新用户默认余额
+	SettingKeyDefaultSubscriptions  = "default_subscriptions"    // 新用户默认订阅列表（JSON）
+	SettingKeyDailyCheckInEnabled   = "daily_checkin_enabled"    // 每日签到开关
+	SettingKeyDailyCheckInReward    = "daily_checkin_reward"     // 兼容旧版：每日签到固定奖励金额
+	SettingKeyDailyCheckInMinReward = "daily_checkin_min_reward" // 每日签到最小奖励金额
+	SettingKeyDailyCheckInMaxReward = "daily_checkin_max_reward" // 每日签到最大奖励金额
 
 	// 管理员 API Key
 	SettingKeyAdminAPIKey = "admin_api_key" // 全局管理员 API Key（用于外部系统集成）

@@ -43,9 +43,12 @@ type SystemSettings struct {
 	SoraClientEnabled           bool
 	CustomMenuItems             string // JSON array of custom menu items
 
-	DefaultConcurrency   int
-	DefaultBalance       float64
-	DefaultSubscriptions []DefaultSubscriptionSetting
+	DefaultConcurrency    int
+	DefaultBalance        float64
+	DefaultSubscriptions  []DefaultSubscriptionSetting
+	DailyCheckInEnabled   bool
+	DailyCheckInMinReward float64
+	DailyCheckInMaxReward float64
 
 	// Model fallback configuration
 	EnableModelFallback      bool   `json:"enable_model_fallback"`
