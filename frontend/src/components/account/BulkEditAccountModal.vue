@@ -468,6 +468,36 @@
         </div>
       </div>
 
+      <!-- OpenAI WS Mode（仅全部为 OpenAI OAuth/API Key 时显示） -->
+      <div v-if="allOpenAIOAuthOrAPIKey" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+        <div class="mb-3 flex items-center justify-between">
+          <label
+            id="bulk-edit-openai-ws-mode-label"
+            class="input-label mb-0"
+            for="bulk-edit-openai-ws-mode-enabled"
+          >
+            {{ t('admin.accounts.openai.wsMode') }}
+          </label>
+          <input
+            v-model="enableOpenAIWSMode"
+            id="bulk-edit-openai-ws-mode-enabled"
+            type="checkbox"
+            aria-controls="bulk-edit-openai-ws-mode-body"
+            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+        </div>
+        <div
+          id="bulk-edit-openai-ws-mode-body"
+          :class="!enableOpenAIWSMode && 'pointer-events-none opacity-50'"
+        >
+          <div class="mb-3">
+            <Select v-model="bulkOpenAIWSMode" :options="openAIWSModeOptions" />
+          </div>
+          <p class="input-hint">{{ t('admin.accounts.openai.wsModeDesc') }}</p>
+          <p class="input-hint">{{ t(openAIWSModeConcurrencyHintKey) }}</p>
+        </div>
+      </div>
+
       <!-- Concurrency & Priority -->
       <div class="grid grid-cols-2 gap-4 border-t border-gray-200 pt-4 dark:border-dark-600 lg:grid-cols-4">
         <div>
@@ -834,6 +864,13 @@ import ProxySelector from '@/components/common/ProxySelector.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { buildModelMappingObject as buildModelMappingPayload } from '@/composables/useModelWhitelist'
+import {
+  OPENAI_WS_MODE_OFF,
+  OPENAI_WS_MODE_PASSTHROUGH,
+  type OpenAIWSMode,
+  isOpenAIWSModeEnabled,
+  resolveOpenAIWSModeConcurrencyHintKey
+} from '@/utils/openaiWsMode'
 
 interface Props {
   show: boolean
@@ -862,6 +899,14 @@ const allAnthropicOAuthOrSetupToken = computed(() => {
     props.selectedPlatforms.length === 1 &&
     props.selectedPlatforms[0] === 'anthropic' &&
     props.selectedTypes.every(t => t === 'oauth' || t === 'setup-token')
+  )
+})
+
+const allOpenAIOAuthOrAPIKey = computed(() => {
+  return (
+    props.selectedPlatforms.length === 1 &&
+    props.selectedPlatforms[0] === 'openai' &&
+    props.selectedTypes.every(t => t === 'oauth' || t === 'apikey')
   )
 })
 
@@ -906,6 +951,7 @@ const enableRateMultiplier = ref(false)
 const enableStatus = ref(false)
 const enableGroups = ref(false)
 const enableRpmLimit = ref(false)
+const enableOpenAIWSMode = ref(false)
 
 // State - field values
 const submitting = ref(false)
@@ -926,6 +972,7 @@ const priority = ref(1)
 const rateMultiplier = ref(1)
 const status = ref<'active' | 'inactive'>('active')
 const groupIds = ref<number[]>([])
+const bulkOpenAIWSMode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OFF)
 const rpmLimitEnabled = ref(false)
 const bulkBaseRpm = ref<number | null>(null)
 const bulkRpmStrategy = ref<'tiered' | 'sticky_exempt'>('tiered')
@@ -936,6 +983,13 @@ const umqModeOptions = computed(() => [
   { value: 'throttle', label: t('admin.accounts.quotaControl.rpmLimit.umqModeThrottle') },
   { value: 'serialize', label: t('admin.accounts.quotaControl.rpmLimit.umqModeSerialize') },
 ])
+const openAIWSModeOptions = computed(() => [
+  { value: OPENAI_WS_MODE_OFF, label: t('admin.accounts.openai.wsModeOff') },
+  { value: OPENAI_WS_MODE_PASSTHROUGH, label: t('admin.accounts.openai.wsModePassthrough') }
+])
+const openAIWSModeConcurrencyHintKey = computed(() =>
+  resolveOpenAIWSModeConcurrencyHintKey(bulkOpenAIWSMode.value)
+)
 
 // All models list (combined Anthropic + OpenAI + Gemini)
 const allModels = [
@@ -1322,6 +1376,16 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
     updates.extra = extra
   }
 
+  if (enableOpenAIWSMode.value) {
+    if (!updates.extra) updates.extra = {}
+    const wsExtra = updates.extra as Record<string, unknown>
+    const wsEnabled = isOpenAIWSModeEnabled(bulkOpenAIWSMode.value)
+    wsExtra.openai_oauth_responses_websockets_v2_mode = bulkOpenAIWSMode.value
+    wsExtra.openai_oauth_responses_websockets_v2_enabled = wsEnabled
+    wsExtra.openai_apikey_responses_websockets_v2_mode = bulkOpenAIWSMode.value
+    wsExtra.openai_apikey_responses_websockets_v2_enabled = wsEnabled
+  }
+
   // UMQ mode（独立于 RPM 保存）
   if (userMsgQueueMode.value !== null) {
     if (!updates.extra) updates.extra = {}
@@ -1392,6 +1456,7 @@ const handleSubmit = async () => {
     enableStatus.value ||
     enableGroups.value ||
     enableRpmLimit.value ||
+    enableOpenAIWSMode.value ||
     userMsgQueueMode.value !== null
 
   if (!hasAnyFieldEnabled) {
@@ -1483,6 +1548,7 @@ watch(
       enableStatus.value = false
       enableGroups.value = false
       enableRpmLimit.value = false
+      enableOpenAIWSMode.value = false
 
       // Reset all values
       baseUrl.value = ''
@@ -1499,6 +1565,7 @@ watch(
       rateMultiplier.value = 1
       status.value = 'active'
       groupIds.value = []
+      bulkOpenAIWSMode.value = OPENAI_WS_MODE_OFF
       rpmLimitEnabled.value = false
       bulkBaseRpm.value = null
       bulkRpmStrategy.value = 'tiered'

@@ -28,14 +28,16 @@ vi.mock('vue-i18n', async () => {
   }
 })
 
-function mountModal() {
+function mountModal(overrides: Record<string, unknown> = {}) {
   return mount(BulkEditAccountModal, {
     props: {
       show: true,
       accountIds: [1, 2],
       selectedPlatforms: ['antigravity'],
+      selectedTypes: ['oauth'],
       proxies: [],
-      groups: []
+      groups: [],
+      ...overrides
     } as any,
     global: {
       stubs: {
@@ -68,5 +70,19 @@ describe('BulkEditAccountModal', () => {
     expect(wrapper.text()).toContain('Gemini 3.1 Image')
     expect(wrapper.text()).toContain('G3 Image→3.1')
     expect(wrapper.text()).not.toContain('GPT-5.3 Codex')
+  })
+
+  it('仅当选中 OpenAI OAuth/API Key 账号时显示 WS mode', () => {
+    const openaiWrapper = mountModal({
+      selectedPlatforms: ['openai'],
+      selectedTypes: ['oauth', 'apikey']
+    })
+    expect(openaiWrapper.text()).toContain('admin.accounts.openai.wsMode')
+
+    const nonOpenAIWrapper = mountModal({
+      selectedPlatforms: ['anthropic'],
+      selectedTypes: ['oauth']
+    })
+    expect(nonOpenAIWrapper.text()).not.toContain('admin.accounts.openai.wsMode')
   })
 })
