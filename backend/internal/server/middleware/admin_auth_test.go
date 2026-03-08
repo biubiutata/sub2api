@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
@@ -163,6 +164,10 @@ func (s *stubUserRepo) ListWithFilters(ctx context.Context, params pagination.Pa
 
 func (s *stubUserRepo) UpdateBalance(ctx context.Context, id int64, amount float64) error {
 	panic("unexpected UpdateBalance call")
+}
+
+func (s *stubUserRepo) TryDailyCheckIn(ctx context.Context, id int64, amount float64, dayStart, checkedInAt time.Time) (bool, error) {
+	panic("unexpected TryDailyCheckIn call")
 }
 
 func (s *stubUserRepo) DeductBalance(ctx context.Context, id int64, amount float64) error {

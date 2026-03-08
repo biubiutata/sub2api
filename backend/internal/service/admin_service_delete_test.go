@@ -74,6 +74,10 @@ func (s *userRepoStub) UpdateBalance(ctx context.Context, id int64, amount float
 	panic("unexpected UpdateBalance call")
 }
 
+func (s *userRepoStub) TryDailyCheckIn(ctx context.Context, id int64, amount float64, dayStart, checkedInAt time.Time) (bool, error) {
+	panic("unexpected TryDailyCheckIn call")
+}
+
 func (s *userRepoStub) DeductBalance(ctx context.Context, id int64, amount float64) error {
 	panic("unexpected DeductBalance call")
 }

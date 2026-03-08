@@ -154,6 +154,9 @@ func (r *stubUserRepoForQuota) ListWithFilters(context.Context, pagination.Pagin
 	return nil, nil, nil
 }
 func (r *stubUserRepoForQuota) UpdateBalance(context.Context, int64, float64) error { return nil }
+func (r *stubUserRepoForQuota) TryDailyCheckIn(context.Context, int64, float64, time.Time, time.Time) (bool, error) {
+	return false, nil
+}
 func (r *stubUserRepoForQuota) DeductBalance(context.Context, int64, float64) error { return nil }
 func (r *stubUserRepoForQuota) UpdateConcurrency(context.Context, int64, int) error { return nil }
 func (r *stubUserRepoForQuota) ExistsByEmail(context.Context, string) (bool, error) {

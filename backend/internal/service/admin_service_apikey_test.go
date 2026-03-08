@@ -32,28 +32,47 @@ func (s *userRepoStubForGroupUpdate) AddGroupToAllowedGroups(_ context.Context, 
 	return s.addGroupErr
 }
 
-func (s *userRepoStubForGroupUpdate) Create(context.Context, *User) error                { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) GetByID(context.Context, int64) (*User, error)      { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) GetByEmail(context.Context, string) (*User, error)  { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) GetFirstAdmin(context.Context) (*User, error)       { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) Update(context.Context, *User) error                { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) Delete(context.Context, int64) error                { panic("unexpected") }
+func (s *userRepoStubForGroupUpdate) Create(context.Context, *User) error { panic("unexpected") }
+func (s *userRepoStubForGroupUpdate) GetByID(context.Context, int64) (*User, error) {
+	panic("unexpected")
+}
+func (s *userRepoStubForGroupUpdate) GetByEmail(context.Context, string) (*User, error) {
+	panic("unexpected")
+}
+func (s *userRepoStubForGroupUpdate) GetFirstAdmin(context.Context) (*User, error) {
+	panic("unexpected")
+}
+func (s *userRepoStubForGroupUpdate) Update(context.Context, *User) error { panic("unexpected") }
+func (s *userRepoStubForGroupUpdate) Delete(context.Context, int64) error { panic("unexpected") }
 func (s *userRepoStubForGroupUpdate) List(context.Context, pagination.PaginationParams) ([]User, *pagination.PaginationResult, error) {
 	panic("unexpected")
 }
 func (s *userRepoStubForGroupUpdate) ListWithFilters(context.Context, pagination.PaginationParams, UserListFilters) ([]User, *pagination.PaginationResult, error) {
 	panic("unexpected")
 }
-func (s *userRepoStubForGroupUpdate) UpdateBalance(context.Context, int64, float64) error   { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) DeductBalance(context.Context, int64, float64) error   { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) UpdateConcurrency(context.Context, int64, int) error   { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) ExistsByEmail(context.Context, string) (bool, error)   { panic("unexpected") }
+func (s *userRepoStubForGroupUpdate) UpdateBalance(context.Context, int64, float64) error {
+	panic("unexpected")
+}
+func (s *userRepoStubForGroupUpdate) TryDailyCheckIn(context.Context, int64, float64, time.Time, time.Time) (bool, error) {
+	panic("unexpected")
+}
+func (s *userRepoStubForGroupUpdate) DeductBalance(context.Context, int64, float64) error {
+	panic("unexpected")
+}
+func (s *userRepoStubForGroupUpdate) UpdateConcurrency(context.Context, int64, int) error {
+	panic("unexpected")
+}
+func (s *userRepoStubForGroupUpdate) ExistsByEmail(context.Context, string) (bool, error) {
+	panic("unexpected")
+}
 func (s *userRepoStubForGroupUpdate) RemoveGroupFromAllowedGroups(context.Context, int64) (int64, error) {
 	panic("unexpected")
 }
-func (s *userRepoStubForGroupUpdate) UpdateTotpSecret(context.Context, int64, *string) error { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) EnableTotp(context.Context, int64) error                { panic("unexpected") }
-func (s *userRepoStubForGroupUpdate) DisableTotp(context.Context, int64) error               { panic("unexpected") }
+func (s *userRepoStubForGroupUpdate) UpdateTotpSecret(context.Context, int64, *string) error {
+	panic("unexpected")
+}
+func (s *userRepoStubForGroupUpdate) EnableTotp(context.Context, int64) error  { panic("unexpected") }
+func (s *userRepoStubForGroupUpdate) DisableTotp(context.Context, int64) error { panic("unexpected") }
 
 // apiKeyRepoStubForGroupUpdate implements APIKeyRepository for AdminUpdateAPIKeyGroupID tests.
 type apiKeyRepoStubForGroupUpdate struct {

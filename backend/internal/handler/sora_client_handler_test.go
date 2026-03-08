@@ -934,6 +934,9 @@ func (r *stubUserRepoForHandler) ListWithFilters(context.Context, pagination.Pag
 	return nil, nil, nil
 }
 func (r *stubUserRepoForHandler) UpdateBalance(context.Context, int64, float64) error { return nil }
+func (r *stubUserRepoForHandler) TryDailyCheckIn(context.Context, int64, float64, time.Time, time.Time) (bool, error) {
+	return false, nil
+}
 func (r *stubUserRepoForHandler) DeductBalance(context.Context, int64, float64) error { return nil }
 func (r *stubUserRepoForHandler) UpdateConcurrency(context.Context, int64, int) error { return nil }
 func (r *stubUserRepoForHandler) ExistsByEmail(context.Context, string) (bool, error) {
